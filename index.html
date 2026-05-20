@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>imagine.is-a.dev</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --green: #00ff41;
+      --green-dim: #00aa2a;
+      --green-dark: #003b0d;
+      --bg: #0a0a0a;
+      --bg2: #0d0d0d;
+      --amber: #ffb000;
+      --red: #ff2244;
+      --scan-speed: 8s;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--green);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+      cursor: none;
+    }
+
+    /* Custom cursor */
+    #cursor {
+      position: fixed;
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--green);
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%);
+      transition: transform 0.05s, opacity 0.2s;
+      box-shadow: 0 0 8px var(--green);
+    }
+    #cursor::after {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 4px; height: 4px;
+      background: var(--green);
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+    }
+
+    /* CRT scanlines overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.18) 2px,
+        rgba(0,0,0,0.18) 4px
+      );
+      pointer-events: none;
+      z-index: 9998;
+    }
+
+    /* Scanline sweep */
+    body::after {
+      content: '';
+      position: fixed;
+      left: 0; right: 0;
+      height: 120px;
+      background: linear-gradient(transparent, rgba(0,255,65,0.04), transparent);
+      animation: scanline var(--scan-speed) linear infinite;
+      pointer-events: none;
+      z-index: 9997;
+      top: -120px;
+    }
+
+    @keyframes scanline {
+      to { top: 100vh; }
+    }
+
+    /* Noise texture via pseudo */
+    .noise {
+      position: fixed;
+      inset: 0;
+      opacity: 0.025;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 200px;
+      pointer-events: none;
+      z-index: 9996;
+      animation: noiseAnim 0.5s steps(2) infinite;
+    }
+    @keyframes noiseAnim { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-5px,3px)} }
+
+    /* ── TERMINAL CONTAINER ── */
+    .terminal {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 6rem;
+    }
+
+    /* BOOT HEADER */
+    .boot-header {
+      border: 1px solid var(--green-dim);
+      padding: 1.2rem 1.5rem;
+      margin-bottom: 2rem;
+      position: relative;
+      animation: fadeIn 1s ease both;
+      background: rgba(0,255,65,0.02);
+      box-shadow: 0 0 20px rgba(0,255,65,0.06), inset 0 0 20px rgba(0,255,65,0.02);
+    }
+    .boot-header::before {
+      content: 'SYSTEM TERMINAL v2.4.1 // SECURE SHELL';
+      position: absolute;
+      top: -0.6rem;
+      left: 1rem;
+      background: var(--bg);
+      padding: 0 0.5rem;
+      font-size: 11px;
+      color: var(--green-dim);
+      letter-spacing: 0.1em;
+    }
+
+    .ascii-logo {
+      font-family: 'VT323', monospace;
+      font-size: clamp(1.8rem, 5vw, 3rem);
+      color: var(--green);
+      text-shadow: 0 0 10px rgba(0,255,65,0.7), 0 0 30px rgba(0,255,65,0.3);
+      line-height: 1.1;
+      letter-spacing: 0.05em;
+      animation: flicker 6s infinite;
+    }
+
+    @keyframes flicker {
+      0%,95%,97%,100% { opacity:1; }
+      96% { opacity: 0.4; }
+      96.5% { opacity: 1; }
+    }
+
+    .boot-meta {
+      margin-top: 0.8rem;
+      color: var(--green-dim);
+      font-size: 12px;
+    }
+    .boot-meta span { color: var(--amber); }
+
+    /* BLINKING CURSOR */
+    .blink {
+      display: inline-block;
+      width: 10px; height: 1.1em;
+      background: var(--green);
+      vertical-align: text-bottom;
+      animation: blink 1s step-end infinite;
+      margin-left: 2px;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* SECTION BLOCKS */
+    .block {
+      border-left: 2px solid var(--green-dim);
+      padding-left: 1.2rem;
+      margin-bottom: 2.5rem;
+      animation: slideIn 0.6s ease both;
+    }
+    .block:nth-child(2) { animation-delay: 0.2s; }
+    .block:nth-child(3) { animation-delay: 0.4s; }
+    .block:nth-child(4) { animation-delay: 0.6s; }
+    .block:nth-child(5) { animation-delay: 0.8s; }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-12px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; } to { opacity: 1; }
+    }
+
+    .prompt {
+      color: var(--green-dim);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .prompt::before {
+      content: '>';
+      color: var(--green);
+      font-size: 1em;
+    }
+    .prompt-label {
+      color: var(--amber);
+    }
+
+    h2.section-title {
+      font-family: 'VT323', monospace;
+      font-size: 1.6rem;
+      color: var(--green);
+      text-shadow: 0 0 8px rgba(0,255,65,0.5);
+      margin-bottom: 0.8rem;
+      letter-spacing: 0.08em;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px dashed var(--green-dark);
+      margin: 2rem 0;
+    }
+
+    /* ABOUT TEXT */
+    .about-text {
+      color: #a0e0a0;
+      max-width: 600px;
+    }
+    .about-text p + p { margin-top: 0.8rem; }
+
+    /* SKILLS GRID */
+    .skills-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+    .skill-tag {
+      border: 1px solid var(--green-dim);
+      padding: 0.2rem 0.7rem;
+      font-size: 12px;
+      color: var(--green);
+      letter-spacing: 0.06em;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .skill-tag::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--green);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.2s;
+      z-index: -1;
+    }
+    .skill-tag:hover {
+      color: var(--bg);
+      border-color: var(--green);
+      box-shadow: 0 0 10px rgba(0,255,65,0.4);
+    }
+    .skill-tag:hover::before { transform: scaleX(1); }
+
+    /* PROJECTS */
+    .project-card {
+      border: 1px solid var(--green-dark);
+      padding: 1rem 1.2rem;
+      margin-bottom: 1rem;
+      position: relative;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      background: rgba(0,255,65,0.01);
+    }
+    .project-card:hover {
+      border-color: var(--green-dim);
+      box-shadow: 0 0 14px rgba(0,255,65,0.08), inset 0 0 10px rgba(0,255,65,0.03);
+    }
+    .project-card::before {
+      content: attr(data-id);
+      position: absolute;
+      top: -0.55rem; left: 0.8rem;
+      background: var(--bg);
+      padding: 0 0.4rem;
+      font-size: 11px;
+      color: var(--amber);
+    }
+    .project-title {
+      font-family: 'VT323', monospace;
+      font-size: 1.3rem;
+      color: var(--green);
+      letter-spacing: 0.05em;
+    }
+    .project-desc {
+      color: #7ab87a;
+      font-size: 13px;
+      margin-top: 0.3rem;
+    }
+    .project-tags {
+      display: flex; gap: 0.4rem; flex-wrap: wrap;
+      margin-top: 0.6rem;
+    }
+    .project-tag {
+      font-size: 11px;
+      color: var(--green-dim);
+      border: 1px solid var(--green-dark);
+      padding: 0 0.4rem;
+    }
+    .project-link {
+      color: var(--amber);
+      text-decoration: none;
+      font-size: 12px;
+      margin-top: 0.5rem;
+      display: inline-block;
+      transition: text-shadow 0.2s;
+    }
+    .project-link:hover { text-shadow: 0 0 8px var(--amber); }
+
+    /* CONTACT */
+    .contact-list { list-style: none; }
+    .contact-list li {
+      padding: 0.35rem 0;
+      color: #a0e0a0;
+      display: flex; gap: 0.8rem; align-items: center;
+    }
+    .contact-list li .key { color: var(--green-dim); min-width: 80px; }
+    .contact-list a {
+      color: var(--amber);
+      text-decoration: none;
+      transition: text-shadow 0.2s;
+    }
+    .contact-list a:hover { text-shadow: 0 0 8px var(--amber); }
+
+    /* STATUS BAR */
+    .statusbar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: var(--green);
+      color: var(--bg);
+      font-size: 12px;
+      padding: 0.3rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 100;
+      letter-spacing: 0.07em;
+    }
+    .statusbar .uptime { opacity: 0.7; }
+
+    /* GLITCH EFFECT ON HOVER (logo) */
+    .ascii-logo:hover {
+      animation: glitch 0.4s steps(2) infinite, flicker 6s infinite;
+    }
+    @keyframes glitch {
+      0%   { text-shadow: 2px 0 red, -2px 0 cyan; clip-path: inset(10% 0 60% 0); }
+      25%  { text-shadow: -2px 0 red, 2px 0 cyan; clip-path: inset(40% 0 20% 0); }
+      50%  { text-shadow: 2px 0 cyan, -2px 0 red; clip-path: inset(70% 0 5% 0); }
+      75%  { text-shadow: 0 0 10px var(--green); clip-path: none; }
+      100% { text-shadow: 2px 0 red, -2px 0 cyan; }
+    }
+
+    /* TYPE ANIMATION for boot lines */
+    .type-line {
+      overflow: hidden;
+      white-space: nowrap;
+      width: 0;
+      animation: typeOut 0.8s steps(40) forwards;
+    }
+    .type-line:nth-child(1) { animation-delay: 0.1s; }
+    .type-line:nth-child(2) { animation-delay: 0.5s; }
+    .type-line:nth-child(3) { animation-delay: 0.9s; }
+    @keyframes typeOut { to { width: 100%; } }
+
+    /* UPTIME COUNTER */
+    #uptime { font-variant-numeric: tabular-nums; }
+
+    /* Selection */
+    ::selection { background: var(--green); color: var(--bg); }
+
+    /* Mobile tweaks */
+    @media (max-width: 600px) {
+      .ascii-logo { font-size: 1.6rem; }
+      .statusbar { font-size: 10px; padding: 0.25rem 0.8rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="noise"></div>
+  <div id="cursor"></div>
+
+  <div class="terminal">
+
+    <!-- BOOT HEADER -->
+    <div class="boot-header">
+      <div class="ascii-logo">IMAGINE</div>
+      <div style="font-size:13px; color: var(--green-dim); margin-top:0.3rem; letter-spacing:0.1em;">imagine.is-a.dev</div>
+      <div class="boot-meta" style="margin-top:1rem;">
+        <div class="type-line">[ OK ] Loading user profile ............. <span>DONE</span></div>
+        <div class="type-line">[ OK ] Mounting filesystem ............... <span>DONE</span></div>
+        <div class="type-line">[ OK ] Establishing connection ........... <span style="color:var(--green);">ONLINE</span></div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- ABOUT -->
+    <div class="block">
+      <div class="prompt"><span class="prompt-label">whoami</span></div>
+      <h2 class="section-title">// ABOUT</h2>
+      <div class="about-text">
+        <p>Hey. I'm <strong style="color:var(--green);">imagine</strong> — I just code stuff for fun. No agenda, no roadmap, just vibes and caffeine.</p>
+        <p>I pick up projects when something interests me, hack until it works (or doesn't), and ship it anyway. Some of it's useful. Most of it's just for the hell of it.</p>
+        <p>Latest thing I built: <a href="https://houseai.qzz.io" target="_blank" style="color:var(--amber);text-decoration:none;" onmouseover="this.style.textShadow='0 0 8px var(--amber)'" onmouseout="this.style.textShadow=''">houseai.qzz.io</a> — check it out.<span class="blink"></span></p>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- SKILLS -->
+    <div class="block">
+      <div class="prompt"><span class="prompt-label">cat skills.txt</span></div>
+      <h2 class="section-title">// STACK</h2>
+      <div class="skills-grid">
+        <div class="skill-tag">HTML/CSS</div>
+        <div class="skill-tag">JavaScript</div>
+        <div class="skill-tag">TypeScript</div>
+        <div class="skill-tag">Node.js</div>
+        <div class="skill-tag">Python</div>
+        <div class="skill-tag">React</div>
+        <div class="skill-tag">Git</div>
+        <div class="skill-tag">Linux</div>
+        <div class="skill-tag">Docker</div>
+        <div class="skill-tag">SQL</div>
+        <div class="skill-tag">Bash</div>
+        <div class="skill-tag">REST APIs</div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- PROJECTS -->
+    <div class="block">
+      <div class="prompt"><span class="prompt-label">ls -la projects/</span></div>
+      <h2 class="section-title">// PROJECTS</h2>
+
+      <div class="project-card" data-id="[01]">
+        <div class="project-title">HOUSEAI</div>
+        <div class="project-desc">An AI-powered project built for fun. Because why not throw some intelligence at it and see what happens.</div>
+        <div class="project-tags">
+          <span class="project-tag">AI</span>
+          <span class="project-tag">Web</span>
+          <span class="project-tag">Fun project</span>
+        </div>
+        <a href="https://houseai.qzz.io" target="_blank" class="project-link">→ houseai.qzz.io</a>
+      </div>
+
+
+    </div>
+
+    <hr class="divider">
+
+    <!-- CONTACT -->
+    <div class="block">
+      <div class="prompt"><span class="prompt-label">cat contact.json</span></div>
+      <h2 class="section-title">// CONTACT</h2>
+      <ul class="contact-list">
+        <li><span class="key">github</span><a href="https://github.com/imagine" target="_blank">github.com/imagine</a></li>
+        <li><span class="key">email</span><a href="mailto:hello@imagine.is-a.dev">hello@imagine.is-a.dev</a></li>
+        <li><span class="key">discord</span><span>2imaginee</span></li>
+        <li><span class="key">location</span><span>somewhere on the internet</span></li>
+      </ul>
+    </div>
+
+  </div><!-- /terminal -->
+
+  <!-- STATUS BAR -->
+  <div class="statusbar">
+    <span>imagine@is-a.dev:~$ <span class="blink" style="display:inline-block;width:7px;height:0.9em;background:var(--bg);vertical-align:text-bottom;animation:blink 1s step-end infinite;"></span></span>
+    <span class="uptime">UPTIME: <span id="uptime">00:00:00</span> &nbsp;|&nbsp; STATUS: ONLINE</span>
+  </div>
+
+  <script>
+    // Custom cursor
+    const cur = document.getElementById('cursor');
+    document.addEventListener('mousemove', e => {
+      cur.style.left = e.clientX + 'px';
+      cur.style.top  = e.clientY + 'px';
+    });
+    document.addEventListener('mousedown', () => cur.style.transform = 'translate(-50%,-50%) scale(0.7)');
+    document.addEventListener('mouseup',   () => cur.style.transform = 'translate(-50%,-50%) scale(1)');
+
+    // Uptime counter
+    const start = Date.now();
+    setInterval(() => {
+      const s = Math.floor((Date.now() - start) / 1000);
+      const h = String(Math.floor(s / 3600)).padStart(2,'0');
+      const m = String(Math.floor((s % 3600) / 60)).padStart(2,'0');
+      const sc = String(s % 60).padStart(2,'0');
+      document.getElementById('uptime').textContent = `${h}:${m}:${sc}`;
+    }, 1000);
+
+    // Random glitch flickers on skill tags
+    const tags = document.querySelectorAll('.skill-tag');
+    setInterval(() => {
+      const t = tags[Math.floor(Math.random() * tags.length)];
+      t.style.opacity = '0.3';
+      setTimeout(() => t.style.opacity = '', 80);
+    }, 2500);
+  </script>
+</body>
+</html>
